@@ -1,5 +1,5 @@
 {
-  "name": "nexcess/salesforce",
+  "name": "nexcess/php-salesforce-rest-api",
   "description": "Salesforce API Client based on bjsmasth/php-salesforce-rest-api",
   "version": "51.0",
   "license": "MIT",
@@ -33,6 +33,9 @@
       "Nexcess\\Salesforce\\": "src/",
       "Nexcess\\Salesforce\\Test\\": "tests/"
     }
+  },
+  "provide": {
+    "bjsmasth/php-salesforce-rest-api": "<1.0"
   },
   "scripts": {
     "test:phan": "vendor/bin/phan",
