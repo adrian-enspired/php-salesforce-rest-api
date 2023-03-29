@@ -12,7 +12,7 @@ use Throwable;
 
 use AT\Exceptable\Spl\RuntimeException;
 
-use Nexcess\Salesforce\Error;
+use Nexcess\Salesforce\Error\Error;
 
 /**
  * Validation errors.

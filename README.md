@@ -35,6 +35,8 @@ _Check [Salesforce's Help Docs](https://help.salesforce.com/s/articleView?id=sf.
     - Select Access Scope (If you need a refresh token, specify it here)
 6. Click Save, and store your access credentials in a safe place.
 
+Also note your Salesforce instance name (e.g., _example.my.salesforce.com_) as you'll need it to set up authentication.
+
 ### Basic Usage
 
 Creating a new Api client and connecting:
@@ -44,11 +46,8 @@ use Nexcess\Salesforce\ {
   Client
 };
 
-// if you need to use a different login endpoint than the default `login.salesforce.com`
-//  (e.g., for a sandbox installation during development),
-//  include it here with your credentials using the "endpoint" key.
 $salesforce = new Client(
-    (new Password())->authenticate([
+    (new Password($YOUR_INSTANCE_NAME))->authenticate([
         "client_id" => $YOUR_CONSUMER_KEY,
         "client_secret" => $YOUR_CONSUMER_SECRET,
         "username" => $YOUR_SALESFORCE_USERNAME,
@@ -204,12 +203,12 @@ class Example extends SalesforceObject {
 
 ### Handling Errors
 
-All Runtime Exceptions thrown from this library will be an instance of `Nexcess\Salesforce\Error`.
+All Runtime Exceptions thrown from this library will be an instance of `Nexcess\Salesforce\Error\Error`.
 
 Exceptions are grouped into the following types:
 - `Nexcess\Salesforce\Error\Salesforce`:
 
-    Errors originating from the Salesforce API, including HTTP errors (e.g., connection timeouts)
+    Errors originating from the Salesforce API, including HTTP errors by default (e.g., connection timeouts - pass `$options["http_errors"] = true` to your Authenticator to use [Guzzle's Exception types](https://docs.guzzlephp.org/en/stable/quickstart.html#exceptions) instead)
 - `Nexcess\Salesforce\Error\Authentication`:
 
     Authentication failures or attempts to use the HttpClient before authentication has succeeded

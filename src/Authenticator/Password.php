@@ -21,30 +21,35 @@ use GuzzleHttp\Client as HttpClient;
 class Password implements Authenticator {
 
   /** @var array Default Http Client options. */
-  protected const DEFAULT_OPTIONS = [
-    "base_uri" => self::DEFAULT_LOGIN_ENDPOINT,
-    "http_errors" => false
-  ];
+  protected const DEFAULT_OPTIONS = ["http_errors" => false];
 
   /** @var string Default login endpoint. */
   protected const DEFAULT_LOGIN_ENDPOINT = "https://login.salesforce.com";
 
+  /** @var string Default login endpoint. */
+  protected const DEFAULT_INSTANCE_NAME = "salesforce.com";
+
+  /** @var string Salesforce instance name. */
+  protected string $instanceName;
+
   /** @var array Map of Http Client options. */
   protected array $options;
 
-  /**
-   * {@inheritDoc}
-   */
-  public static function create(array $options = self::DEFAULT_OPTIONS) : Authenticator {
-    return new self($options);
+  /** {@inheritDoc} */
+  public static function create(
+    string $instanceName = self::DEFAULT_INSTANCE_NAME,
+    array $options = self::DEFAULT_OPTIONS
+  ) : Authenticator {
+    return new self($instanceName, $options);
   }
 
   /**
+   * @param string $instanceName Your Salesforce instance name
    * @param array $options Map of Http Client options - @see HttpClient::__construct($options)
-   *  If you pass a base_uri, it should be your Salesforce login endpoint, and not include a trailing slash.
    */
-  public function __construct(array $options = []) {
-    $this->options = $options + ["base_uri" => self::DEFAULT_LOGIN_ENDPOINT];
+  public function __construct(string $instanceName, array $options = []) {
+    $this->instanceName = $instanceName;
+    $this->options = $options;
   }
 
   /**
@@ -58,7 +63,7 @@ class Password implements Authenticator {
    *  - string "password"
    */
   public function authenticate(array $parameters) : HttpClient {
-    $response = $this->httpClient()
+    $response = $this->httpClient("https://login.{$this->instanceName}")
       ->post("/services/oauth2/token", ["form_params" => ["grant_type" => "password"] + $parameters]);
 
     $auth = json_decode($response->getBody());
@@ -75,10 +80,11 @@ class Password implements Authenticator {
   /**
    * Builds a new Http client using this Authenticator
    *
+   * @param string $baseUri
    * @throws AuthenticationException NOT_AUTHENTICATED if Authenticator has not yet succeeded
    */
-  protected function httpClient(string $baseUri = null, string $accessToken = null) : HttpClient {
-    $options = ["base_uri" => $baseUri ?? $this->options["base_uri"]] + $this->options;
+  protected function httpClient(string $baseUri, string $accessToken = null) : HttpClient {
+    $options = ["base_uri" => $baseUri] + $this->options;
     if (! empty($accessToken)) {
       $options["headers"]["Authorization"] = "OAuth {$accessToken}";
     }

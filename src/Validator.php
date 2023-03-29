@@ -8,7 +8,7 @@
 
 namespace Nexcess\Salesforce;
 
-use Nexcess\Salesforce\Error\Validation as ValidationException;
+use Nexcess\Salesforce\Error\Error\Validation as ValidationException;
 
 /**
  * Validation utility methods.

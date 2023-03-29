@@ -10,7 +10,7 @@ namespace Nexcess\Salesforce\Error;
 
 use AT\Exceptable\Spl\RuntimeException;
 
-use Nexcess\Salesforce\Error;
+use Nexcess\Salesforce\Error\Error;
 
 /**
  * General usage errors.
