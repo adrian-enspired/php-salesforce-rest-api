@@ -89,11 +89,20 @@ class CRUD
 
         $client = new Client();
 
+        $headers = [
+            'Authorization' => "OAuth {$this->access_token}",
+            'Content-type' => 'application/json'
+        ];
+        
+        // if the object type is a Comment__c, assign a header
+        // that prevents SF from auto-assigning
+        // @see MAD-12977
+        if ($object === 'Comment__c') {
+            $headers['Sforce-Auto-Assign'] = 'FALSE';
+        }
+
         $request = $client->request('POST', $url, [
-            'headers' => [
-                'Authorization' => "OAuth {$this->access_token}",
-                'Content-type' => 'application/json'
-            ],
+            'headers' => $headers,
             'json' => $data
         ]);
 
