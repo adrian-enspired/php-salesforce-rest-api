@@ -35,20 +35,19 @@ _Check [Salesforce's Help Docs](https://help.salesforce.com/s/articleView?id=sf.
     - Select Access Scope (If you need a refresh token, specify it here)
 6. Click Save, and store your access credentials in a safe place.
 
+Also note your Salesforce instance name (e.g., _example.my.salesforce.com_) as you'll need it to set up authentication.
+
 ### Basic Usage
 
 Creating a new Api client and connecting:
 ```php
-use Nexcess\Salesforce {
-  Authentication\Password,
+use Nexcess\Salesforce\ {
+  Authenticator\Password,
   Client
 };
 
-// if you need to use a different login endpoint than the default `login.salesforce.com`
-//  (e.g., for a sandbox installation during development),
-//  include it here with your credentials using the "endpoint" key.
 $salesforce = new Client(
-    (new Password())->authenticate([
+    (new Password($YOUR_INSTANCE_NAME))->authenticate([
         "client_id" => $YOUR_CONSUMER_KEY,
         "client_secret" => $YOUR_CONSUMER_SECRET,
         "username" => $YOUR_SALESFORCE_USERNAME,
@@ -112,13 +111,14 @@ var_dump($ded->Id);
 
 ## Advanced Usage
 
-### Salesforce Object Classes
+### Extending the SalesforceObject Class
 
 The included `Nexcess\Salesforce\SaleforceObject` class can be used without modification as a generic "salesforce record" implementation - it will automatically set properties based on what's fetched from the Api. However, the intent is that applications will extend from it and define the properties needed for each of their Salesforce objects. This allows for a consistent schema that your code can rely on, and even lets you implement some level of validation directly in your application.
 
 To build your own Salesforce Object, you must:
 - extend from `Nexcess\Salesforce\SalesforceObject`
 - define the object fields as public properties
+- list any properties that must not be included in update() calls (e.g., renamed fields, nested objects or object lists) in UNEDITABLE_FIELDS.
 - add any necessary logic in `setField()` (e.g., building a new object if your record has a relation)
 - add any desired logic in `validateField()`
 
@@ -128,8 +128,51 @@ use Nexcess\Salesforce\SalesforceObject;
 
 class Example extends SalesforceObject {
 
+    public const TYPE = "Example";
+
     public ? string $Name = null;
 }
+```
+
+### Inline Records and Record Lists
+
+SOQL allows queries for nested objects and queries, which appear in results as inline records and query results respectively. This library does understand results from such queries, but your SalesforceObject subclasses must define properties in a particular way to support them.
+
+For example, a query similar to `SELECT Manager.Id, Manager.Name, (SELECT Id, Name FROM Members) FROM Teams` would require a SalesforceObject class like so:
+```php
+use Nexcess\Salesforce\ {
+    Result,
+    SalesforceObject
+};
+use Example;
+
+class Team extends SalesforceObject {
+
+    public const TYPE = "Team";
+
+    protected const UNEDITABLE_FIELDS = [
+        "Manager",
+        "Members",
+        ...parent::UNEDITABLE_FIELDS
+    ];
+
+    public ? Example $Manager = null;
+    public ? Result $Members = null;
+}
+```
+
+Where there is an inline object, the property should be typed as the corresponding SalesforceObject subclass. For any record type where you're not making a SalesforceObject subclass, type the property as `SalesforceObject` — though this is obviously less useful.
+
+Where there is a subquery, the property should be typed as a `Result` instance. Among other things, this allows the Result to support paginated subqueries.
+
+### Object Mapping
+
+Finally, to allow the Api Client take advantage of your subclasses, you must provide an `$objectMap` so it knows which PHP classes correspond to which Salesforce record types. Without this, you'll end up with generic SalesfoceObject instances for everything. Nested Results will be provided the same `$objectMap` as their parent Result instance.
+```php
+$salesforce = new Client(
+    $password->authenticate([...$credentials]),
+    [Example::TYPE => Example::class, Team::TYPE => Team::class]
+);
 ```
 
 ### Field Validation
@@ -160,12 +203,12 @@ class Example extends SalesforceObject {
 
 ### Handling Errors
 
-All Runtime Exceptions thrown from this library will be an instance of `Nexcess\Salesforce\Error`.
+All Runtime Exceptions thrown from this library will be an instance of `Nexcess\Salesforce\Error\Error`.
 
 Exceptions are grouped into the following types:
 - `Nexcess\Salesforce\Error\Salesforce`:
 
-    Errors originating from the Salesforce API, including HTTP errors (e.g., connection timeouts)
+    Errors originating from the Salesforce API, including HTTP errors by default (e.g., connection timeouts - pass `$options["http_errors"] = true` to your Authenticator to use [Guzzle's Exception types](https://docs.guzzlephp.org/en/stable/quickstart.html#exceptions) instead)
 - `Nexcess\Salesforce\Error\Authentication`:
 
     Authentication failures or attempts to use the HttpClient before authentication has succeeded
